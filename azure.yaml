@@ -1,0 +1,17 @@
+# azure.yaml — Foundry Hosted Agent manifest
+# Used by: azd ai agent init / azd deploy
+# Also read by the Foundry Toolkit VS Code extension (Deploy Hosted Agent wizard)
+
+name: greeting-agent
+services:
+  greeting-agent:
+    host: azure.ai.agent
+    language: python
+    protocols:
+      - responses
+    cpu: "0.5"
+    memory: "1Gi"
+    env:
+      AZURE_API_BASE: "https://aifoundry9263.openai.azure.com/"
+      AZURE_API_VERSION: "2024-12-01-preview"
+      AZURE_DEPLOYMENT_NAME: "gpt-4.1"

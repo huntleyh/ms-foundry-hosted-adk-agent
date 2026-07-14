@@ -1,0 +1,5 @@
+google-adk[extensions]
+litellm==1.83.14
+azure-identity
+python-dotenv
+azure-ai-agentserver-responses
