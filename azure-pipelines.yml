@@ -1,0 +1,67 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# ADK Agent — build image, push to ACR, deploy new version to Foundry
+#
+# Pre-requisites (one-time setup):
+#   1. Create an Azure Resource Manager service connection in ADO named
+#      "azure-service-connection"  (Project Settings → Service connections).
+#      The service principal needs:
+#        • AcrPush on acragentfzu5sn
+#        • Azure AI Developer (or Cognitive Services Contributor) on
+#          the aifoundry9263 Cognitive Services account
+#
+#   2. If this is the very first deployment, run locally once:
+#        python deploy.py --grant-roles
+#      Role assignment only needs to happen once per agent lifetime.
+# ─────────────────────────────────────────────────────────────────────────────
+
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    exclude:
+      - '*.md'
+      - '.env*'
+      - 'azure-pipelines.yml'
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  acrRegistry: acragentfzu5sn
+  agentImageName: greeting-agent
+  imageTag: $(Build.BuildId)
+  serviceConnection: azure-service-connection
+
+steps:
+
+- task: AzureCLI@2
+  displayName: 'Build and push image to ACR'
+  inputs:
+    azureSubscription: $(serviceConnection)
+    scriptType: bash
+    scriptLocation: inlineScript
+    inlineScript: |
+      az acr build \
+        --registry $(acrRegistry) \
+        --image $(agentImageName):$(imageTag) \
+        --file Dockerfile .
+
+- task: UsePythonVersion@0
+  displayName: 'Use Python 3.12'
+  inputs:
+    versionSpec: '3.12'
+
+- script: pip install --quiet azure-ai-projects azure-identity python-dotenv
+  displayName: 'Install deploy dependencies'
+
+- task: AzureCLI@2
+  displayName: 'Deploy new agent version to Foundry'
+  inputs:
+    azureSubscription: $(serviceConnection)
+    scriptType: bash
+    scriptLocation: inlineScript
+    # AzureCLI@2 logs az in as the service principal, so DefaultAzureCredential
+    # in deploy.py picks it up automatically via AzureCliCredential.
+    inlineScript: |
+      python deploy.py --image $(agentImageName):$(imageTag)
